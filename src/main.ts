@@ -1,9 +1,10 @@
 import { AddCleanup, runFlow } from './flow.ts'
 import './style.css'
 
-const flow = runFlow(ctx => {
-  const { add, sleep, print, restart,
-    alert, prompt, test, Action } = ctx
+const flow = runFlow(({
+  add, sleep, print, restart,
+  alert, prompt, test, Action
+}) => {
   /*
   const result = add(1, 2)
   print("hello world 1  :" + result)
@@ -43,5 +44,19 @@ const flow = runFlow(ctx => {
 
 setTimeout(() => {
   flow.cancel()
-}, 10000);
+}, 10000)
 
+
+//'sleep' and 'print' are built-in tools, 'add' is a custom Action
+runFlow(({ sleep, print, add }) => {
+  print('hello')
+  sleep(1000)
+  print('world')
+  const result = add(1, 2)
+  sleep(1000)
+  print(result)
+}, {
+  add: async (a: number, b: number) => { //implemnetaiton of 'add', it can be sync or async
+    return a + b
+  }
+})

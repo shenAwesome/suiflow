@@ -19,7 +19,6 @@ type Resolved<T> = {
 class EngineBase {
 
     protected startTime: number = Date.now();
-    protected cancelled: boolean = false;
 
     protected readonly actionState = {
         values: [] as any[],
@@ -53,8 +52,8 @@ class EngineBase {
     }
 
     private wrapFunction(fn: Function, name?: string) {
-        const { actionState } = this
         const self = this
+        const { actionState } = this
 
         const newFn = function (...args: any[]) {
             //todo .some logging 
@@ -63,7 +62,7 @@ class EngineBase {
 
             if (cursor === values.length) { // last action
                 const inAction = cursor === current
-                if (self.cancelled) {
+                if (current == -2) {
                     self.cleanup()
                     throw "cancel"
                 }
@@ -123,8 +122,6 @@ class EngineBase {
         actions: { [key: string]: Function },
         fn: Function
     ) {
-
-
         const methodsInA = new Set(Object.getOwnPropertyNames(Engine.prototype))
         const methodsInB = new Set(Object.getOwnPropertyNames(EngineBase.prototype))
         const tools = [...methodsInA].filter(method => !methodsInB.has(method)
@@ -196,7 +193,7 @@ class Engine extends EngineBase {
     }
 
     cancel() {
-        this.cancelled = true
+        this.actionState.current = -2
     }
 
     Action(fn: () => Promise<void> | void): void {
@@ -221,8 +218,6 @@ function runFlow<T extends Methods<T>>(
         restart: () => engine.restart()
     }
 }
-
-
 
 export { runFlow }
 export type { AddCleanup }
