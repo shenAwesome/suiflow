@@ -98,24 +98,18 @@ class EngineBase {
         try {
             this.actionState.cursor = -1
             fn(this.context)
-            this.onEnd()
+            this.onEnd('finished')
         } catch (e) {
             if (e === 'yield') {
                 setTimeout(() => this.move(fn), 20)
-            } else if (e === 'cancel') {
-                this.onCancel()
             } else {
-                throw e
+                this.onEnd(e)
             }
         }
     }
 
-    private onCancel() {
-        console.log('Cancelled')
-    }
-
-    private onEnd() {
-        console.log('Finished')
+    public onEnd(evt: any) {
+        console.log('flow ended', evt)
     }
 
     public run(
@@ -210,9 +204,11 @@ function runFlow<T extends Methods<T>>(
         & { [K in keyof T]: (...args: Parameters<T[K]>) => Resolved<T>[K] }
     ) => void,
     actions: T,
+    onEnd?: (evt: any) => void
 ) {
     const engine = new Engine()
     engine.run(actions, fn)
+    if (onEnd) engine.onEnd = onEnd
     return {
         cancel: () => engine.cancel(),
         restart: () => engine.restart()
