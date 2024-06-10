@@ -112,10 +112,7 @@ class EngineBase {
         console.log('flow ended', evt)
     }
 
-    public run(
-        actions: { [key: string]: Function },
-        fn: Function
-    ) {
+    public run(actions: { [key: string]: Function }, flow: Function) {
         const methodsInA = new Set(Object.getOwnPropertyNames(Engine.prototype))
         const methodsInB = new Set(Object.getOwnPropertyNames(EngineBase.prototype))
         const tools = [...methodsInA].filter(method => !methodsInB.has(method)
@@ -135,11 +132,7 @@ class EngineBase {
             context[key] = this.wrapFunction(fn, key)
         })
 
-        Object.assign(actionState, {
-            values: [] as any[],
-            cursor: -1,
-            current: -1
-        })
+        Object.assign(actionState, { values: [] as any[], cursor: -1, current: -1 })
 
         const self = this
         const toSync = function (fn: () => Promise<void> | void) {
@@ -148,7 +141,7 @@ class EngineBase {
         }
         Object.assign(context, { Action: toSync })
 
-        this.move(fn)
+        this.move(flow)
     }
 }
 
@@ -198,7 +191,7 @@ class Engine extends EngineBase {
 type KeysOfEngine = Exclude<keyof Engine, keyof EngineBase>
 
 function runFlow<T extends Methods<T>>(
-    fn: (params:
+    flow: (params:
         { [K in KeysOfEngine]: (...args: Parameters<Engine[K]>) => Resolved<Engine>[K] }
         & { [K in keyof T]: (...args: Parameters<T[K]>) => Resolved<T>[K] }
     ) => void,
@@ -206,7 +199,7 @@ function runFlow<T extends Methods<T>>(
     onEnd?: (evt: any) => void
 ) {
     const engine = new Engine()
-    engine.run(actions, fn)
+    engine.run(actions, flow)
     if (onEnd) engine.onEnd = onEnd
     return {
         cancel: () => engine.cancel(),
