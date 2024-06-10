@@ -123,12 +123,11 @@ class EngineBase {
 
         //console.log(tools)
         const _actions = Object.entries(actions).filter(([key]) => !key.startsWith('_'))
-            .map(([key, fn]) => ({ key, fn: fn as Function }))
+            .map(([key, fn]) => ({ key, fn }))
+
         tools.forEach(key => {
-            _actions.push({
-                key,
-                fn: (this as any)[key] as Function
-            })
+            const fn = (this as any)[key]
+            _actions.push({ key, fn })
         })
 
         const { context, actionState } = this
