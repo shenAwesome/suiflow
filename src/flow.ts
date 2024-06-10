@@ -148,44 +148,90 @@ class EngineBase {
 class Engine extends EngineBase {
     private tags: { [tag: string]: number } = {};
 
+    /**
+     * Displays an alert message to the user.
+     * @param message - The message to display.
+     */
     alert(message: any) {
         window.alert(message)
     }
 
+    /**
+     * Prompts the user with a message and an optional default value.
+     * @param message - The message to display.
+     * @param defaultValue - The default value to display in the prompt input.
+     * @returns The user's input as a string.
+     */
     prompt(message: string, defaultValue?: string) {
         return prompt(message, defaultValue)
     }
 
+    /**
+     * Prints a message to the console with a timestamp.
+     * @param message - The message to print.
+     */
     print(message: any) {
         console.log(message, this.time)
     }
 
+    /**
+     * Sets a tag at the current flow state.
+     * @param tagName - The name of the tag to set.
+     */
     tag(tagName: string) {
         this.tags[tagName] = this.actionState.current
     }
 
+    /**
+     * Moves to the flow state associated with the specified tag.
+     * @param tagName - The name of the tag to go to.
+     */
     gotoTag(tagName: string) {
         this.gotoStep(this.tags[tagName])
     }
 
+    /**
+     * Restarts the flow from the beginning.
+     */
     restart() {
         this.gotoStep(0)
     }
 
+    /**
+     * Pauses the flow for a specified amount of time.
+     * @param timeout - The time in milliseconds to sleep. 
+     */
     sleep(timeout: number) {
         return new Promise<void>(resolve => {
             setTimeout(resolve, timeout)
-        }) as unknown as void
+        })
     }
 
+    /**
+     * Cancels the current flow  
+     */
     cancel() {
         this.actionState.current = -2
     }
 
-    Action(fn: () => Promise<void> | void): void {
+    /**
+     * Executes a custom action function. 
+     * @param fn - The action function to execute.
+     */
+    Action<T>(fn: () => Promise<T> | T): T {
+        // Placeholder for custom action logic
+        return null as T
+    }
 
+    async getJSON(url: string, params?: { [key: string]: any }) {
+        if (params && (typeof params !== 'function')) {
+            const queryString = new URLSearchParams(params).toString()
+            url = `${url}?${queryString}`
+        }
+        return await (await fetch(url)).json()
     }
 }
+
 
 
 type KeysOfEngine = Exclude<keyof Engine, keyof EngineBase>

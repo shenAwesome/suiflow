@@ -3,8 +3,11 @@ import './style.css'
 
 const flow = runFlow(({
   add, sleep, print, restart,
-  alert, prompt, test, Action
+  alert, prompt, test, Action, getJSON
 }) => {
+  const json = getJSON('abc', {
+
+  })
   /*
   const result = add(1, 2)
   print("hello world 1  :" + result)
