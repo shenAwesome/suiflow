@@ -145,6 +145,8 @@ class EngineBase {
     }
 }
 
+
+
 class Engine extends EngineBase {
     private tags: { [tag: string]: number } = {};
 
@@ -232,7 +234,11 @@ class Engine extends EngineBase {
     }
 }
 
-
+function containsLet(func: Function) {
+    const funcSource = func.toString()
+    const letKeywordRegex = /\blet\b/
+    return letKeywordRegex.test(funcSource)
+}
 
 type KeysOfEngine = Exclude<keyof Engine, keyof EngineBase>
 
@@ -244,6 +250,9 @@ function runFlow<T extends Methods<T>>(
     actions: T,
     onEnd?: (evt: any) => void
 ) {
+    if (containsLet(flow)) {
+        console.warn("Using 'let' is not recommended in flow code; use 'const' if possible.")
+    }
     const engine = new Engine()
     engine.run(actions, flow)
     if (onEnd) engine.onEnd = onEnd
