@@ -32,24 +32,27 @@ By using SUIFlow, developers can create consistent and maintainable user interac
 ```javascript
  
 // A flow that uses built-in tools 'sleep', 'print', and 'restart', along with a custom Action 'add'.
-const flow = runFlow(({ sleep, print, add, restart }) => {
-  print('hello');
-  const result = add(1, 2);
-  sleep(1000);
-  print('world ' + result);
-  sleep(1000);
-  restart(); // Infinite loop until being cancelled
+const flow = runFlow(({ 
+  sleep, print,  restart,
+  add 
+}) => {
+  print('hello') 
+  const result = add(1, 2) 
+  sleep(1000) 
+  print('world ' + result) 
+  sleep(1000) 
+  restart()  // Infinite loop until being cancelled
 }, {
   // Implementation of 'add', can be sync or async
   add: async (a: number, b: number) => {
-    return a + b;
+    return a + b 
   }
-});
+}) 
 
 // Cancel the flow after 10 seconds from outside
 setTimeout(() => {
-  flow.cancel();
-}, 10 * 1000);
+  flow.cancel() 
+}, 10 * 1000) 
 
 ```
 
