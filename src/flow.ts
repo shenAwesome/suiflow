@@ -3,8 +3,21 @@ type Action = () => void
 
 type AddCleanup = (cleanup: Action) => void
 
+// Define the convert function
+type Methods<T> = {
+    [K in keyof T]: (...args: any[]) => Promise<any> | any
+}
+
+type Resolved<T> = {
+    [K in keyof T]: T[K] extends (...args: any[]) => infer R
+    ? R extends Promise<infer U>
+    ? U
+    : R
+    : never
+}
+
 class EngineBase {
-    protected contextFunctions: string[] = [];
+
     protected startTime: number = Date.now();
     protected cancelled: boolean = false;
 
@@ -25,6 +38,7 @@ class EngineBase {
      */
     protected gotoStep(step: number) {
         setTimeout(() => {//set time to change values after the return logic
+            this.cleanup()
             this.actionState.cursor = step - 1
             this.actionState.values.length = step
             this.actionState.current = -1
@@ -105,11 +119,21 @@ class EngineBase {
         console.log('Finished')
     }
 
-    public run<T extends { [key: string]: Function }>(actions: T, fn: (context: T & EngineContext) => void) {
-        const _actions = Object.entries(actions).filter(([key]) => !key.startsWith('_'))
-            .map(([key, fn]) => ({ key, fn }))
+    public run(
+        actions: { [key: string]: Function },
+        fn: Function
+    ) {
 
-        this.contextFunctions.forEach(key => {
+
+        const methodsInA = new Set(Object.getOwnPropertyNames(Engine.prototype))
+        const methodsInB = new Set(Object.getOwnPropertyNames(EngineBase.prototype))
+        const tools = [...methodsInA].filter(method => !methodsInB.has(method)
+            && !method.startsWith('_'))
+
+        //console.log(tools)
+        const _actions = Object.entries(actions).filter(([key]) => !key.startsWith('_'))
+            .map(([key, fn]) => ({ key, fn: fn as Function }))
+        tools.forEach(key => {
             _actions.push({
                 key,
                 fn: (this as any)[key] as Function
@@ -127,103 +151,78 @@ class EngineBase {
             current: -1
         })
 
+        const self = this
+        const toSync = function (fn: () => Promise<void> | void) {
+            const newFn = self.wrapFunction(fn)
+            newFn()
+        }
+        Object.assign(context, { Action: toSync })
+
         this.move(fn)
     }
 }
 
 class Engine extends EngineBase {
     private tags: { [tag: string]: number } = {};
-    contextFunctions = ['alert', 'prompt', 'print', 'sleep', 'cancel', 'tag', 'gotoTag', 'restart'];
 
-    protected alert(message: any) {
+    alert(message: any) {
         window.alert(message)
     }
 
-    protected prompt(message: string, defaultValue?: string) {
+    prompt(message: string, defaultValue?: string) {
         return prompt(message, defaultValue)
     }
 
-    protected print(message: any) {
+    print(message: any) {
         console.log(message, this.time)
     }
 
-    protected tag(tagName: string) {
+    tag(tagName: string) {
         this.tags[tagName] = this.actionState.current
     }
 
-    protected gotoTag(tagName: string) {
+    gotoTag(tagName: string) {
         this.gotoStep(this.tags[tagName])
     }
 
-    protected restart() {
+    restart() {
         this.gotoStep(0)
     }
 
-    protected sleep(timeout: number) {
+    sleep(timeout: number) {
         return new Promise<void>(resolve => {
             setTimeout(resolve, timeout)
         }) as unknown as void
     }
 
-    /**
-     * Can be called from the flow and outside
-     * Will ensure destroyer gets invoked
-     */
     cancel() {
         this.cancelled = true
     }
 
-    restartFlow() {
-        this.cancelled = true //cancel first
-        setTimeout(() => {
-            this.cancelled = false
-            this.restart()
-        }, 100)
+    Action(fn: () => Promise<void> | void): void {
+
     }
 }
 
-interface EngineContext {
 
-    alert(message: any): void
+type KeysOfEngine = Exclude<keyof Engine, keyof EngineBase>
 
-    prompt(message: string, defaultValue?: string): string
-
-    print(message: any): void
-
-    sleep(timeout: number): void
-
-    /**
-     * Cancels the current flow.
-     */
-    cancel(): void
-
-    /**
-     * Sets a tag at the current point in the flow.
-     * @param tagName - The name of the tag to set.
-     */
-    tag(tagName: string): void
-
-    /**
-     * Moves the flow to the specified tag.
-     * @param tagName - The name of the tag to move to.
-     */
-    gotoTag(tagName: string): void
-
-    /**
-     * Restarts the entire flow from the beginning.
-     */
-    restart(): void
-}
-
-
-function runFlow<T extends { [key: string]: Function }>(fn: (context: T & EngineContext) => void, actions: T) {
+function runFlow<T extends Methods<T>>(
+    fn: (params:
+        { [K in KeysOfEngine]: (...args: Parameters<Engine[K]>) => Resolved<Engine>[K] }
+        & { [K in keyof T]: (...args: Parameters<T[K]>) => Resolved<T>[K] }
+    ) => void,
+    actions: T,
+) {
     const engine = new Engine()
     engine.run(actions, fn)
     return {
         cancel: () => engine.cancel(),
-        restart: () => engine.restartFlow()
+        restart: () => engine.restart()
     }
 }
+
+
 
 export { runFlow }
 export type { AddCleanup }
